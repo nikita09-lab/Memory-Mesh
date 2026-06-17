@@ -1,0 +1,31 @@
+{
+    "user_id": "u1",
+    "event_count": 15,
+    "merkle_root": "4d96a4206957719a043ff441a59a92062198ca827fd27537995376de1c7d132a",
+    "events": [
+        {
+            "event_id": "1",
+            "event_type": "SESSION_START",
+            "timestamp": "2026",
+            "proof": [
+                {
+                    "hash": "391e60392b48c7d43d7cb08060a48609fe3d2defb96a4359646f92740415b3a4",
+                    "position": "right"
+                },
+                {
+                    "hash": "ce7d4637afe0f62d8b44c90ba5124f4ac26b2b3d826e7fb919991369f4281bf7",
+                    "position": "right"
+                },
+                {
+                    "hash": "4833d156bbeca9dc6be154547f721635027c22c6f1162b320e8f942906c2c5d6",
+                    "position": "right"
+                },
+                {
+                    "hash": "17ad17572ee0466f9307b6629b13ea96bd62e9becc14599e863f763438056173",
+                    "position": "right"
+                }
+            ]
+        }
+    ],
+    "deletion_confirmed": true
+}
