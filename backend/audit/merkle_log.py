@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import hashlib
 import json
-from storage import AuditStorage
+from .storage import AuditStorage
 
 
 @dataclass

@@ -1,0 +1,4 @@
+timestamp_utc,user_id_hash,shard_id,accuracy_before,accuracy_after,accuracy_delta,retrain_time_sec,samples_removed,status
+2026-06-19T11:40:13.383882+00:00,ff8d9819fc0e…,0,0.1200,0.2000,+0.0800,0.39,100,success
+2026-06-19T11:51:45.070728+00:00,ff8d9819fc0e…,0,0.0600,0.0700,+0.0100,0.40,200,success
+2026-06-19T11:55:47.531013+00:00,ff8d9819fc0e…,0,0.0500,0.1700,+0.1200,0.73,350,success

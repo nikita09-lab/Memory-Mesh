@@ -91,18 +91,21 @@ def generate_proof_from_hashes(
 
     return proof
 
-def generate_deletion_proof(
-    logger,
-    user_id
-):
+def generate_deletion_proof(logger, user_id):
 
-    events = logger.get_user_events(
+    events = logger.get_user_events(user_id)
+
+    hashes = logger.storage.get_event_hashes_by_user(
         user_id
     )
 
-    hashes = logger.storage.get_event_hashes_by_user(
-    user_id
-    )
+    if not events:
+        return {
+            "user_id": user_id,
+            "event_count": 0,
+            "events": [],
+            "deletion_confirmed": False
+        }
 
     root = build_merkle_root(hashes)
 
@@ -123,11 +126,11 @@ def generate_deletion_proof(
                 "proof": proof
             }
         )
-        return {
-            "user_id": user_id,
-            "event_count": len(events),
-            "merkle_root": root,
-            "events": proof_data,
-            "deletion_confirmed": True
-        }
-        
+
+    return {
+        "user_id": user_id,
+        "event_count": len(events),
+        "merkle_root": root,
+        "events": proof_data,
+        "deletion_confirmed": True
+    }        

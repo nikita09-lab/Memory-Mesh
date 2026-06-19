@@ -1,6 +1,7 @@
 import sqlite3
 
 
+
 class AuditStorage:
 
     def __init__(self, db_name="audit.db"):
@@ -132,3 +133,4 @@ class AuditStorage:
         )
 
         return cursor.fetchall()
+        
