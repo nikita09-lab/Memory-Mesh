@@ -24,6 +24,7 @@ from auth import (
 from fastapi import HTTPException   
 from fastapi import Depends
 from auth_dependency import get_current_user
+from fastapi.middleware.cors import CORSMiddleware
 
 # --------------------------------------------------
 # Global Objects
@@ -93,6 +94,16 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MemoryMesh API",
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(audit_router)
