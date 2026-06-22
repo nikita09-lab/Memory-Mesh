@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/client";
 import Navbar from "../components/Navbar";
 
 function Dashboard() {
@@ -14,14 +14,7 @@ function Dashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = localStorage.getItem("token");
-
-        const res = await axios.get("http://127.0.0.1:8000/stats", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
+        const res = await api.get("/stats");
         setStats(res.data);
       } catch (err) {
         console.error(err);
