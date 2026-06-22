@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import Navbar from "../components/Navbar";
 
 function Forget() {
   const [userId, setUserId] = useState("alice@example.com");
@@ -9,19 +10,17 @@ function Forget() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.post(
-        "http://127.0.0.1:8000/forget",
-        null,
-        {
-          params: {
-            user_id: userId,
-          },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await axios.post("http://127.0.0.1:8000/forget", null, {
+        params: {
+          user_id: userId,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
+      setResult(res.data);
+      console.log(res.data);
       setResult(res.data);
     } catch (err) {
       console.error(err);
@@ -30,6 +29,8 @@ function Forget() {
   };
 
   return (
+    <>
+    <Navbar />
     <div
       style={{
         minHeight: "100vh",
@@ -72,20 +73,13 @@ function Forget() {
 
           <p>Status: {result.status}</p>
 
-          <p>
-            Samples Removed:
-            {" "}
-            {result.total_samples_removed}
-          </p>
+          <p>Samples Removed: {result.total_samples_removed}</p>
 
-          <p>
-            Retrain Time:
-            {" "}
-            {result.total_retrain_time_sec}
-          </p>
+          <p>Retrain Time: {result.total_retrain_time_sec}</p>
         </div>
       )}
     </div>
+    </>
   );
 }
 

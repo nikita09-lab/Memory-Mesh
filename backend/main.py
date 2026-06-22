@@ -233,4 +233,27 @@ def forget(
 
     logger.log_event(event)
 
+    print("FORGET RESULT =", result)
+
     return result
+
+@app.get("/stats")
+def get_stats():
+
+    total_users = len(user_map)
+
+    try:
+        total_audit_events = len(
+            logger.storage.get_events_by_user(
+                "alice@example.com"
+            )
+        )
+    except:
+        total_audit_events = 0
+
+    return {
+        "total_users": total_users,
+        "protected_memories": len(train_ds),
+        "forget_requests": total_audit_events,
+        "audit_events": total_audit_events
+    }

@@ -3,11 +3,20 @@ import axios from "axios";
 
 function Query() {
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
+  const [messages, setMessages] = useState([]);
 
   const askQuestion = async () => {
+    if (!question.trim()) return;
+
     try {
       const token = localStorage.getItem("token");
+
+      const userMessage = {
+        role: "user",
+        content: question,
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
 
       const res = await axios.post(
         "http://127.0.0.1:8000/query",
@@ -22,7 +31,14 @@ function Query() {
         }
       );
 
-      setAnswer(res.data.answer);
+      const botMessage = {
+        role: "assistant",
+        content: res.data.answer,
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+
+      setQuestion("");
     } catch (err) {
       console.error(err);
       alert("Query Failed");
@@ -38,43 +54,69 @@ function Query() {
         padding: "40px",
       }}
     >
-      <h1>🔍 Query MemoryMesh</h1>
+      <h1>🤖 MemoryMesh Chat</h1>
 
-      <input
+      <div
         style={{
-          width: "400px",
-          padding: "12px",
+          maxWidth: "900px",
+          margin: "30px auto",
         }}
-        placeholder="Ask a question..."
-        value={question}
-        onChange={(e) =>
-          setQuestion(e.target.value)
-        }
-      />
-
-      <button
-        style={{
-          marginLeft: "10px",
-          padding: "12px",
-        }}
-        onClick={askQuestion}
       >
-        Ask
-      </button>
+        {messages.map((msg, index) => (
+          <div
+            key={index}
+            style={{
+              background:
+                msg.role === "user"
+                  ? "#2563eb"
+                  : "#1e293b",
+              padding: "15px",
+              borderRadius: "12px",
+              marginBottom: "15px",
+            }}
+          >
+            <strong>
+              {msg.role === "user"
+                ? "👤 You"
+                : "🤖 MemoryMesh"}
+            </strong>
 
-      {answer && (
-        <div
+            <p>{msg.content}</p>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          maxWidth: "900px",
+          margin: "auto",
+        }}
+      >
+        <input
+          value={question}
+          onChange={(e) =>
+            setQuestion(e.target.value)
+          }
+          placeholder="Ask MemoryMesh..."
           style={{
-            marginTop: "30px",
-            background: "#1e293b",
-            padding: "20px",
+            flex: 1,
+            padding: "15px",
             borderRadius: "10px",
           }}
+        />
+
+        <button
+          onClick={askQuestion}
+          style={{
+            padding: "15px 25px",
+            cursor: "pointer",
+          }}
         >
-          <h3>Answer</h3>
-          <p>{answer}</p>
-        </div>
-      )}
+          Send
+        </button>
+      </div>
     </div>
   );
 }
