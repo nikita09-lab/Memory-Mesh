@@ -1,57 +1,31 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
-
+import * as THREE from 'three';
+import LiquidEther from '../components/LiquidEther.jsx'; 
 /* Animated fluid canvas background */
-function FluidBg() {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let w = canvas.width = canvas.offsetWidth;
-    let h = canvas.height = canvas.offsetHeight;
-    let t = 0;
-    let raf;
-    const resize = () => {
-      w = canvas.width = canvas.offsetWidth;
-      h = canvas.height = canvas.offsetHeight;
-    };
-    window.addEventListener('resize', resize);
+<div style={{ width: '100%', height: 600, position: 'relative' }}>
+  <LiquidEther
+    colors={[ '#5227FF', '#FF9FFC', '#B497CF' ]}
+    mouseForce={20}
+    cursorSize={100}
+    isViscous
+    viscous={30}
+    iterationsViscous={32}
+    iterationsPoisson={32}
+    resolution={0.5}
+    isBounce={false}
+    autoDemo
+    autoSpeed={0.5}
+    autoIntensity={2.2}
+    takeoverDuration={0.25}
+    autoResumeDelay={3000}
+    autoRampDuration={0.6}
+    color0="#5227FF"
+    color1="#FF9FFC"
+    color2="#B497CF"
+/>
+</div>
 
-    const blobs = [
-      { x:.3, y:.4, r:.28, c:'rgba(124,58,237,', spd:.0007 },
-      { x:.7, y:.3, r:.22, c:'rgba(168,85,247,', spd:.0009 },
-      { x:.5, y:.7, r:.25, c:'rgba(236,72,153,', spd:.0006 },
-      { x:.2, y:.7, r:.2,  c:'rgba(59,130,246,', spd:.0011 },
-    ];
-
-    const draw = () => {
-      ctx.clearRect(0, 0, w, h);
-      blobs.forEach((b, i) => {
-        const ox = Math.sin(t * b.spd * 1000 + i) * .12;
-        const oy = Math.cos(t * b.spd * 800 + i) * .1;
-        const grd = ctx.createRadialGradient(
-          (b.x + ox) * w, (b.y + oy) * h, 0,
-          (b.x + ox) * w, (b.y + oy) * h, b.r * Math.max(w,h)
-        );
-        grd.addColorStop(0, b.c + '0.25)');
-        grd.addColorStop(1, b.c + '0)');
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, w, h);
-      });
-      t += 16;
-      raf = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
-  }, []);
-
-  return (
-    <canvas ref={canvasRef} style={{
-      position:'absolute', inset:0, width:'100%', height:'100%',
-      pointerEvents:'none',
-    }} />
-  );
-}
 
 /* Floating stat pill */
 function StatPill({ icon, label, value, delay }) {
@@ -115,7 +89,7 @@ export default function Landing() {
 
       {/* HERO */}
       <section style={{ position:'relative', minHeight:'100vh', display:'flex', flexDirection:'column' }}>
-        <FluidBg />
+        <LiquidEther colors={['#7c3aed', '#a855f7', '#ec4899']} />
 
         {/* Top bar */}
         <div style={{
