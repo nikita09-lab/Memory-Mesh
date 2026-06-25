@@ -1,123 +1,89 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../api/client";
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
+import SpotlightCard from '../components/SpotlightCard';
 
-function Login() {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
-  const [loading, setLoading] = useState(false);
+const API = 'http://127.0.0.1:8000';
 
+export default function Login() {
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin123');
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (token) {
-      navigate("/dashboard");
-    }
-  }, [navigate]);
+  useEffect(() => { if (localStorage.getItem('token')) navigate('/dashboard'); }, []);
 
   const login = async () => {
-    if (loading) return;
-
-    setLoading(true);
-
+    setError(''); setLoading(true);
     try {
-      const res = await api.post("/login", null, {
-        params: {
-          username,
-          password,
-        },
-      });
-
-      localStorage.setItem("token", res.data.access_token);
-
-      navigate("/dashboard");
-    } catch (err) {
-      console.error(err);
-      alert("Login Failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      login();
-    }
+      const res = await axios.post(`${API}/login`, null, { params: { username, password } });
+      localStorage.setItem('token', res.data.access_token);
+      localStorage.setItem('mm_username', res.data.username || username);
+      localStorage.setItem('mm_role', res.data.role || 'user');
+      navigate('/dashboard');
+    } catch {
+      setError('Invalid username or password. Try admin / admin123');
+    } finally { setLoading(false); }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "#0f172a",
-      }}
-    >
-      <div
-        style={{
-          background: "#1e293b",
-          padding: "40px",
-          borderRadius: "12px",
-          width: "400px",
-          color: "white",
-          textAlign: "center",
-        }}
-      >
-        <h1>🧠 MemoryMesh</h1>
+    <div style={{
+      minHeight:'100vh', background:'var(--bg)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      padding:20, position:'relative', overflow:'hidden',
+    }}>
+      {/* BG blobs */}
+      {[['20%','30%','rgba(124,58,237,.18)'],['80%','70%','rgba(168,85,247,.12)'],['60%','20%','rgba(236,72,153,.10)']].map(([x,y,c],i)=>(
+        <div key={i} style={{
+          position:'absolute', left:x, top:y, width:400, height:400,
+          background:`radial-gradient(circle, ${c}, transparent 70%)`,
+          transform:'translate(-50%,-50%)', pointerEvents:'none',
+        }}/>
+      ))}
 
-        <p>Privacy-Preserving AI Memory System</p>
+      <SpotlightCard style={{ width:'100%', maxWidth:400, padding:'40px 36px' }} spotlightColor="rgba(124,58,237,.2)">
+        <div className="fade-up">
+          {/* Logo */}
+          <div style={{ textAlign:'center', marginBottom:28 }}>
+            <div style={{
+              width:54, height:54,
+              background:'linear-gradient(135deg,#7c3aed,#a855f7)',
+              borderRadius:15, display:'flex', alignItems:'center',
+              justifyContent:'center', fontSize:26, margin:'0 auto 16px',
+              boxShadow:'0 0 24px rgba(124,58,237,.5)',
+            }}>⬡</div>
+            <h1 style={{ fontSize:22, fontWeight:700, letterSpacing:'-0.5px' }}>
+              Memory<span style={{ color:'#a78bfa' }}>Mesh</span>
+            </h1>
+            <p style={{ color:'var(--text2)', fontSize:13, marginTop:4 }}>Sign in to your account</p>
+          </div>
 
-        <input
-          placeholder="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          onKeyDown={handleKeyDown}
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginTop: "15px",
-            boxSizing: "border-box",
-          }}
-        />
+          {error && <div className="flash flash-err">{error}</div>}
 
-        <br />
-        <br />
+          <div style={{ marginBottom:14 }}>
+            <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text2)', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:6 }}>Username</label>
+            <input className="mm-input" value={username} onChange={e=>setUsername(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} placeholder="Username" />
+          </div>
+          <div style={{ marginBottom:24 }}>
+            <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text2)', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:6 }}>Password</label>
+            <input className="mm-input" type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} placeholder="Password" />
+          </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={handleKeyDown}
-          style={{
-            width: "100%",
-            padding: "12px",
-            boxSizing: "border-box",
-          }}
-        />
+          <button className="btn btn-primary" onClick={login} disabled={loading}
+            style={{ width:'100%', justifyContent:'center', padding:'12px', fontSize:14, opacity:loading?.6:1 }}>
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
 
-        <br />
-        <br />
-
-        <button
-          onClick={login}
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "12px",
-            cursor: loading ? "default" : "pointer",
-            opacity: loading ? 0.7 : 1,
-          }}
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </div>
+          <p style={{ textAlign:'center', marginTop:18, fontSize:13, color:'var(--text2)' }}>
+            Don't have an account?{' '}
+            <Link to="/register" style={{ color:'var(--accent2)', fontWeight:600 }}>Sign up</Link>
+          </p>
+          <p style={{ textAlign:'center', marginTop:8, fontSize:11, color:'var(--text3)', fontFamily:'var(--mono)' }}>
+            demo: admin / admin123
+          </p>
+        </div>
+      </SpotlightCard>
     </div>
   );
 }
-
-export default Login;
