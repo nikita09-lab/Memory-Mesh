@@ -7,9 +7,12 @@ import Query      from './pages/Query';
 import ForgetChat from './pages/ForgetChat';
 import DeleteUser from './pages/DeleteUser';
 import Audit      from './pages/Audit';
+import useTokenRefresh from './hooks/useTokenRefresh';
+import Upload from './pages/Upload';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
+  useTokenRefresh();
   return (
     <BrowserRouter>
       <Routes>
@@ -18,6 +21,7 @@ export default function App() {
         <Route path="/register"     element={<Register />} />
         <Route path="/dashboard"    element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/query"        element={<ProtectedRoute><Query /></ProtectedRoute>} />
+        <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
         <Route path="/forget-chat"  element={<ProtectedRoute><ForgetChat /></ProtectedRoute>} />
         <Route path="/delete-user"  element={<ProtectedRoute><DeleteUser /></ProtectedRoute>} />
         <Route path="/audit"        element={<ProtectedRoute><Audit /></ProtectedRoute>} />

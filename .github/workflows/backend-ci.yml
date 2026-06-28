@@ -1,1 +1,70 @@
-#
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+
+jobs:
+  lint-and-test:
+    name: Lint & Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install dev extras
+        run: pip install ruff pytest pytest-asyncio httpx slowapi python-dotenv
+
+      - name: Lint with ruff
+        run: ruff check . --select E,F,W,I --ignore E501
+
+      - name: Run audit module tests
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-test-key-not-for-production-64chars00' }}
+          ENV: test
+        run: |
+          pytest audit/tests/ -v --tb=short
+
+      - name: Run RAG core deletion tests
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-test-key-not-for-production-64chars00' }}
+          ENV: test
+        run: |
+          pytest rag_core/test_deletion.py -v --tb=short
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install bandit
+        run: pip install bandit
+      - name: Run bandit security scan
+        run: bandit -r backend/ -ll --exclude backend/rag_core/notebooks

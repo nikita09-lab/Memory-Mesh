@@ -5,12 +5,15 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyo
 
 # Virtual Environments
 venv/
 .venv/
 env/
 ENV/
+backend/.venv/
+backend/venv/
 
 # Python Build
 build/
@@ -24,6 +27,8 @@ dist/
 
 .env
 .env.*
+.env.local
+.env.*.local
 !.env.example
 
 # ==========================================
@@ -31,10 +36,11 @@ dist/
 # ==========================================
 
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 
-# Keep schema/migrations if added later
 !migrations/
 
 # ==========================================
@@ -51,10 +57,14 @@ logs/
 .ipynb_checkpoints/
 
 # ==========================================
-# VS CODE
+# EDITOR
 # ==========================================
 
 .vscode/
+*.save
+*.swp
+*.swo
+*~
 
 # ==========================================
 # MACOS
@@ -72,7 +82,7 @@ Thumbs.db
 Desktop.ini
 
 # ==========================================
-# PYTEST
+# PYTEST / COVERAGE
 # ==========================================
 
 .pytest_cache/
@@ -96,14 +106,19 @@ htmlcov/
 # ==========================================
 
 node_modules/
+frontend/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-lock.yaml
 
-# React / Vite Build
+# Vite / React Build
 frontend/dist/
 frontend/build/
+frontend/.vite/
+
+# Root lockfile (use frontend/package-lock.json)
+/package-lock.json
 
 # ==========================================
 # ML / AI MODELS
@@ -128,28 +143,18 @@ datasets/
 *.index
 
 # ==========================================
-# TEMP FILES
+# RUNTIME ARTIFACTS
+# ==========================================
+
+backend/provenance.json
+backend/benchmark_report.csv
+backend/unlearning/benchmarks/
+
+# ==========================================
+# TEMP / CACHE
 # ==========================================
 
 tmp/
 temp/
 *.tmp
-
-# ==========================================
-# GENERATED AUDIT FILES
-# ==========================================
-
-backend/audit/audit.db
-
-# ==========================================
-# OS GENERATED
-# ==========================================
-
-*.swp
-*.swo
-
-# ==========================================
-# CACHE
-# ==========================================
-
 .cache/

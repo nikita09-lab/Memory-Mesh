@@ -75,9 +75,8 @@ export default function Query() {
     setMessages(p => [...p, { role:'user', content:q, ts }]);
     setQuestion(''); setLoading(true);
     try {
-      const res = await axios.post(`${API}/query`, null, {
-        params: { question: q },
-        headers: { Authorization:`Bearer ${localStorage.getItem('token')}` },
+      const res = await axios.post(`${API}/query`, { question: q }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       setMessages(p => [...p, { role:'assistant', content:res.data.answer, ts: new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) }]);
     } catch {

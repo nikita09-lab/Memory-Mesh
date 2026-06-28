@@ -1,12 +1,13 @@
 import { useRef, useState, useLayoutEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const NAV_ITEMS = [
-  { label: 'Dashboard', href: '/dashboard', icon: '◈' },
-  { label: 'Query AI',  href: '/query',     icon: '◉' },
-  { label: 'Forget Chat', href: '/forget-chat', icon: '◌' },
-  { label: 'Delete User', href: '/delete-user', icon: '◍' },
-  { label: 'Audit Proof', href: '/audit',    icon: '◎' },
+const ALL_NAV_ITEMS = [
+  { label: 'Dashboard',   href: '/dashboard',   icon: '◈', adminOnly: false },
+  { label: 'Query AI',    href: '/query',        icon: '◉', adminOnly: false },
+  { label: 'Forget Chat', href: '/forget-chat',  icon: '◌', adminOnly: false },
+  { label: 'Delete User', href: '/delete-user',  icon: '◍', adminOnly: true  },
+  { label: 'Audit Proof', href: '/audit',        icon: '◎', adminOnly: false },
+  { label: 'Upload Docs', href: '/upload', icon: '◆', adminOnly: false },
 ];
 
 export default function Navbar() {
@@ -16,10 +17,14 @@ export default function Navbar() {
   const btnRefs   = useRef([]);
   const wrapRef   = useRef(null);
 
+  // Only show admin items to admin users
+  const role = localStorage.getItem('mm_role') || 'user';
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter(item => !item.adminOnly || role === 'admin');
+
   const activeIdx = NAV_ITEMS.findIndex(n => location.pathname === n.href);
 
   useLayoutEffect(() => {
-    const el  = btnRefs.current[activeIdx];
+    const el   = btnRefs.current[activeIdx];
     const wrap = wrapRef.current;
     if (!el || !wrap) return;
     const wR = wrap.getBoundingClientRect();
@@ -53,7 +58,7 @@ export default function Navbar() {
         </span>
       </div>
 
-      {/* Gooey nav */}
+      {/* Nav items */}
       <div className="gooey-nav-wrap" ref={wrapRef} style={{ position:'relative' }}>
         {activeIdx >= 0 && (
           <div className="gooey-nav-bg" style={bgStyle} />
@@ -79,7 +84,7 @@ export default function Navbar() {
           background:'var(--glow)', border:'1px solid var(--border2)',
           fontSize:12, color:'var(--accent2)', fontWeight:600,
         }}>
-          {user}
+          {user}{role === 'admin' && <span style={{ marginLeft:6, fontSize:10, color:'#a78bfa', opacity:.8 }}>admin</span>}
         </div>
         <button
           className="btn btn-ghost btn-sm"

@@ -1,1 +1,53 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: memorymesh-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      - DB_PATH=/data/audit.db
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
+      - ENV=${ENV:-production}
+    volumes:
+      - audit_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s  # allow time for SISA engine to load
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+    container_name: memorymesh-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  audit_data:
+    driver: local
+
+# ── Usage ─────────────────────────────────────────────────────────────────────
+# 1. Copy .env.example to .env and fill in SECRET_KEY
+# 2. docker compose up --build
+# 3. Open http://localhost:5173
 #
+# To run only the backend in Docker and frontend locally:
+#   docker compose up backend
+#   cd frontend && npm run dev

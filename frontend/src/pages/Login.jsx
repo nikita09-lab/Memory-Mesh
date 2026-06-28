@@ -1,30 +1,47 @@
+/**
+ * Login.jsx
+ *
+ * FIXED:
+ *  - Credentials sent as JSON body (POST /login), not query params.
+ *    Passwords no longer appear in server logs or browser history.
+ *  - Removed "demo: admin / admin123" hint from production UI.
+ *  - API URL from env variable.
+ */
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import SpotlightCard from '../components/SpotlightCard';
 
-const API = 'http://127.0.0.1:8000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 export default function Login() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => { if (localStorage.getItem('token')) navigate('/dashboard'); }, []);
+  useEffect(() => {
+    if (localStorage.getItem('token')) navigate('/dashboard');
+  }, []);
 
   const login = async () => {
+    if (!username.trim() || !password) return;
     setError(''); setLoading(true);
     try {
-      const res = await axios.post(`${API}/login`, null, { params: { username, password } });
+      // FIXED: JSON body — never query params
+      const res = await axios.post(`${API}/login`, { username, password });
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('mm_username', res.data.username || username);
       localStorage.setItem('mm_role', res.data.role || 'user');
       navigate('/dashboard');
-    } catch {
-      setError('Invalid username or password. Try admin / admin123');
-    } finally { setLoading(false); }
+    } catch (err) {
+      setError(
+        err.response?.data?.detail || 'Invalid username or password.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,14 +80,14 @@ export default function Login() {
 
           <div style={{ marginBottom:14 }}>
             <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text2)', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:6 }}>Username</label>
-            <input className="mm-input" value={username} onChange={e=>setUsername(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} placeholder="Username" />
+            <input className="mm-input" value={username} onChange={e=>setUsername(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} placeholder="Username" autoComplete="username" />
           </div>
           <div style={{ marginBottom:24 }}>
             <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text2)', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:6 }}>Password</label>
-            <input className="mm-input" type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} placeholder="Password" />
+            <input className="mm-input" type="password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&login()} placeholder="Password" autoComplete="current-password" />
           </div>
 
-          <button className="btn btn-primary" onClick={login} disabled={loading}
+          <button className="btn btn-primary" onClick={login} disabled={loading || !username.trim() || !password}
             style={{ width:'100%', justifyContent:'center', padding:'12px', fontSize:14, opacity:loading?.6:1 }}>
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
@@ -79,9 +96,7 @@ export default function Login() {
             Don't have an account?{' '}
             <Link to="/register" style={{ color:'var(--accent2)', fontWeight:600 }}>Sign up</Link>
           </p>
-          <p style={{ textAlign:'center', marginTop:8, fontSize:11, color:'var(--text3)', fontFamily:'var(--mono)' }}>
-            demo: admin / admin123
-          </p>
+          {/* REMOVED: "demo: admin / admin123" hint */}
         </div>
       </SpotlightCard>
     </div>
