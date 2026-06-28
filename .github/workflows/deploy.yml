@@ -23,7 +23,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/backend:latest
+          tags: ghcr.io/gau-rav88/memory-mesh/backend:latest
 
       - name: Build and push frontend
         uses: docker/build-push-action@v5
@@ -31,5 +31,5 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/frontend:latest
+          tags: ghcr.io/gau-rav88/memory-mesh/frontend:latest
           build-args: VITE_API_URL=${{ secrets.VITE_API_URL }}
