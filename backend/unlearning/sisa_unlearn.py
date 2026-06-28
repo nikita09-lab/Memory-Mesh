@@ -16,17 +16,15 @@ References:
   https://arxiv.org/abs/1912.03817
 """
 
-import os
 import csv
-import json
-import time
 import hashlib
+import json
 import logging
-import copy
-from dataclasses import dataclass, field, asdict
+import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 import torch.nn as nn

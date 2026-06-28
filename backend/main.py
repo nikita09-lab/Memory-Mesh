@@ -10,60 +10,71 @@ Security changes vs. original:
   - Rate limiting on /login (requires slowapi: pip install slowapi)
   - CORS origins from config (not hardcoded)
 """
-from dotenv import load_dotenv
+
+# load_dotenv MUST be first — before any import that reads env vars
+from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv()
-from contextlib import asynccontextmanager
-import uuid
 
-from fastapi import FastAPI, HTTPException, Depends, Request
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from torch.utils.data import DataLoader, Subset
+import io  # noqa: E402
+from contextlib import asynccontextmanager  # noqa: E402
 
-from audit.audit_api import router as audit_router
-from audit.audit_api import logger
-from audit.merkle_log import AuditEvent
-
-from rag_core.rag_core import RAGSession
-
-from unlearning.sisa_unlearn import (
-    SISAUnlearnEngine,
-    SISAConfig,
-    _make_demo_dataset,
+import pypdf  # noqa: E402
+from fastapi import (  # noqa: E402
+    Depends,
+    FastAPI,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
 )
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
+from torch.utils.data import DataLoader, Subset  # noqa: E402
 
-from auth import (
+from audit.audit_api import logger  # noqa: E402
+from audit.audit_api import router as audit_router  # noqa: E402
+from audit.merkle_log import AuditEvent  # noqa: E402
+from auth import (  # noqa: E402
     authenticate_user,
     create_access_token,
-    register_user,
+    delete_chat_history,
+    delete_documents,
     delete_user_permanently,
     get_all_users,
-    save_chat_message,
     get_chat_history,
-    delete_chat_history,
-    save_document,
     get_documents,
-    delete_documents,
-    
+    register_user,
+    save_chat_message,
+    save_document,
 )
-from auth_dependency import get_current_user
-from shared.config import settings
-from shared.logger import get_logger
-from shared.utils import new_event_id, utc_now_iso, truncate
+from auth_dependency import get_current_user  # noqa: E402
+from rag_core.rag_core import RAGSession  # noqa: E402
+from shared.config import settings  # noqa: E402
+from shared.logger import get_logger  # noqa: E402
+from shared.utils import new_event_id, truncate, utc_now_iso  # noqa: E402
+from unlearning.sisa_unlearn import (  # noqa: E402
+    SISAConfig,
+    SISAUnlearnEngine,
+    _make_demo_dataset,
+)
 
 log = get_logger("memorymesh.main")
 
 # Optional rate limiting — graceful fallback if slowapi not installed
 try:
     from slowapi import Limiter, _rate_limit_exceeded_handler
-    from slowapi.util import get_remote_address
     from slowapi.errors import RateLimitExceeded
+    from slowapi.util import get_remote_address
+
     limiter = Limiter(key_func=get_remote_address)
     RATE_LIMITING = True
 except ImportError:
     limiter = None
     RATE_LIMITING = False
-    log.warning("slowapi not installed — login rate limiting disabled. Run: pip install slowapi")
+    log.warning(
+        "slowapi not installed — login rate limiting disabled. Run: pip install slowapi"
+    )
 
 # --------------------------------------------------
 # Global ML objects
@@ -79,6 +90,7 @@ user_map = None
 # --------------------------------------------------
 # Startup / Shutdown
 # --------------------------------------------------
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -111,7 +123,7 @@ if RATE_LIMITING:
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,  # from env — not hardcoded
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -123,6 +135,7 @@ app.include_router(audit_router)
 # --------------------------------------------------
 # Dependencies
 # --------------------------------------------------
+
 
 def admin_required(current_user: str = Depends(get_current_user)) -> str:
     """FastAPI dependency: raises 403 unless the current user has role=admin."""
@@ -136,6 +149,7 @@ def admin_required(current_user: str = Depends(get_current_user)) -> str:
 # --------------------------------------------------
 # Home
 # --------------------------------------------------
+
 
 @app.get("/")
 def home():
@@ -151,8 +165,10 @@ def health():
 # Auth endpoints
 # --------------------------------------------------
 
+
 class LoginRequest(BaseModel):
     """Credentials must be in the request body — never in query params."""
+
     username: str = Field(..., min_length=1, max_length=64)
     password: str = Field(..., min_length=1, max_length=256)
 
@@ -163,21 +179,40 @@ class RegisterRequest(BaseModel):
     email: str = Field(default="", max_length=320)
 
 
-@app.post("/login")
-@limiter.limit("10/minute")
-async def login(req: LoginRequest, request: Request):
-    user = authenticate_user(req.username, req.password)
-    if not user:
-        log.warning("Failed login attempt", extra={"username": req.username})
-        raise HTTPException(status_code=401, detail="Invalid credentials.")
-    token = create_access_token({"sub": req.username})
-    log.info("User logged in", extra={"username": req.username})
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "username": req.username,
-        "role": user["role"],
-    }
+if RATE_LIMITING:
+
+    @app.post("/login")
+    @limiter.limit("10/minute")
+    async def login(req: LoginRequest, request: Request):
+        user = authenticate_user(req.username, req.password)
+        if not user:
+            log.warning("Failed login attempt", extra={"username": req.username})
+            raise HTTPException(status_code=401, detail="Invalid credentials.")
+        token = create_access_token({"sub": req.username})
+        log.info("User logged in", extra={"username": req.username})
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "username": req.username,
+            "role": user["role"],
+        }
+
+else:
+
+    @app.post("/login")
+    async def login(req: LoginRequest, request: Request):  # type: ignore[misc]
+        user = authenticate_user(req.username, req.password)
+        if not user:
+            log.warning("Failed login attempt", extra={"username": req.username})
+            raise HTTPException(status_code=401, detail="Invalid credentials.")
+        token = create_access_token({"sub": req.username})
+        log.info("User logged in", extra={"username": req.username})
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "username": req.username,
+            "role": user["role"],
+        }
 
 
 @app.post("/register")
@@ -191,13 +226,13 @@ def register(req: RegisterRequest):
 
 @app.get("/users")
 def list_users(admin: str = Depends(admin_required)):
-    """FIXED: admin only — was accessible by any authenticated user."""
+    """Admin only — was accessible by any authenticated user."""
     return {"users": get_all_users()}
 
 
 @app.delete("/users/{username}")
 def delete_user(username: str, admin: str = Depends(admin_required)):
-    """FIXED: admin only — was accessible by any authenticated user."""
+    """Admin only — was accessible by any authenticated user."""
     ok, msg = delete_user_permanently(username)
     if not ok:
         raise HTTPException(status_code=400, detail=msg)
@@ -221,7 +256,8 @@ def me(current_user: str = Depends(get_current_user)):
         "role": u.get("role", "user"),
         "email": u.get("email", ""),
     }
-    
+
+
 @app.post("/refresh")
 def refresh(current_user: str = Depends(get_current_user)):
     """Issue a fresh token for an already-authenticated user."""
@@ -239,13 +275,13 @@ def refresh(current_user: str = Depends(get_current_user)):
 # Query + Chat history
 # --------------------------------------------------
 
+
 class QueryRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2000)
 
 
 @app.post("/query")
 def query(req: QueryRequest, current_user: str = Depends(get_current_user)):
-    # Use user's uploaded documents, fall back to demo docs if none uploaded
     user_docs = get_documents(current_user)
     if user_docs:
         docs = [d["content"] for d in user_docs]
@@ -267,34 +303,34 @@ def query(req: QueryRequest, current_user: str = Depends(get_current_user)):
     save_chat_message(current_user, "assistant", answer)
     return {"question": question, "answer": answer}
 
+
 # --------------------------------------------------
 # Document upload
 # --------------------------------------------------
 
-from fastapi import UploadFile, File
 
 @app.post("/documents")
 async def upload_document(
     file: UploadFile = File(...),
-    current_user: str = Depends(get_current_user)
+    current_user: str = Depends(get_current_user),
 ):
     """Upload a TXT, MD, or PDF file to use as RAG context."""
     allowed = {".txt", ".md", ".pdf"}
     ext = "." + file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if ext not in allowed:
-        raise HTTPException(status_code=400, detail="Only .txt, .md, and .pdf files are supported.")
+        raise HTTPException(
+            status_code=400,
+            detail="Only .txt, .md, and .pdf files are supported.",
+        )
 
-    raw = await file.read()
+    MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+    raw = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 10 MB.")
 
-    # Extract text
     if ext == ".pdf":
-        try:
-            import io
-            import pypdf
-            reader = pypdf.PdfReader(io.BytesIO(raw))
-            content = "\n".join(page.extract_text() or "" for page in reader.pages)
-        except ImportError:
-            raise HTTPException(status_code=500, detail="pypdf not installed. Run: pip install pypdf")
+        reader = pypdf.PdfReader(io.BytesIO(raw))
+        content = "\n".join(page.extract_text() or "" for page in reader.pages)
     else:
         content = raw.decode("utf-8", errors="ignore")
 
@@ -310,7 +346,12 @@ async def upload_document(
 @app.get("/documents")
 def list_documents(current_user: str = Depends(get_current_user)):
     docs = get_documents(current_user)
-    return {"documents": [{"id": d["id"], "filename": d["filename"], "created_at": d["created_at"]} for d in docs]}
+    return {
+        "documents": [
+            {"id": d["id"], "filename": d["filename"], "created_at": d["created_at"]}
+            for d in docs
+        ]
+    }
 
 
 @app.delete("/documents")
@@ -342,9 +383,10 @@ def clear_chat(current_user: str = Depends(get_current_user)):
 # Forget (SISA unlearning)
 # --------------------------------------------------
 
+
 @app.post("/forget")
 def forget(user_id: str, current_user: str = Depends(get_current_user)):
-    """FIXED: users can only forget their own data; admins can forget anyone's."""
+    """Users can only forget their own data; admins can forget anyone's."""
     u_list = [x for x in get_all_users() if x["username"] == current_user]
     requesting_user = u_list[0] if u_list else {}
     is_admin = requesting_user.get("role") == "admin"
@@ -382,6 +424,7 @@ def forget(user_id: str, current_user: str = Depends(get_current_user)):
 # --------------------------------------------------
 # Stats
 # --------------------------------------------------
+
 
 @app.get("/stats")
 def get_stats(current_user: str = Depends(get_current_user)):

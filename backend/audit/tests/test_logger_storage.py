@@ -1,12 +1,12 @@
-import sys
 import os
+import sys
 
 sys.path.append(
     os.path.dirname(
         os.path.dirname(__file__)
     )
 )
-from merkle_log import AuditLogger, AuditEvent
+from merkle_log import AuditEvent, AuditLogger
 
 logger = AuditLogger()
 

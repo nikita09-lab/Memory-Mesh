@@ -6,9 +6,9 @@ Usage:
     log = get_logger(__name__)
     log.info("User logged in", extra={"username": "alice"})
 """
+import json
 import logging
 import sys
-import json
 from datetime import datetime, timezone
 
 

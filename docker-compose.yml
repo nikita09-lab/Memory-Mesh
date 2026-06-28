@@ -4,7 +4,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: backend.Dockerfile
     container_name: memorymesh-backend
     restart: unless-stopped
     ports:
@@ -16,6 +16,7 @@ services:
       - DB_PATH=/data/audit.db
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173}
       - ENV=${ENV:-production}
+      - GROQ_API_KEY=${GROQ_API_KEY}
     volumes:
       - audit_data:/data
     healthcheck:
@@ -28,7 +29,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: frontend.Dockerfile
       args:
         - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
     container_name: memorymesh-frontend

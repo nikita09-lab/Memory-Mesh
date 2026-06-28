@@ -5,7 +5,6 @@ import re
 import uuid
 from datetime import datetime, timezone
 
-
 # ── Identifiers ───────────────────────────────────────────────────────────────
 
 def new_event_id() -> str:

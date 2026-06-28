@@ -3,7 +3,8 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import SpotlightCard from '../components/SpotlightCard';
 
-const API = 'http://127.0.0.1:8000';
+
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const WELCOME = { role:'assistant', content:"Hello! I'm MemoryMesh — your privacy-aware AI assistant. Ask me anything. Your session is AES-256 encrypted and all embeddings are wiped the moment I answer.", ts: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) };
 
 function SendIcon() { return <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>; }

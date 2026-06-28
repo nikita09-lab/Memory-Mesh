@@ -1,7 +1,6 @@
 import sqlite3
 
 
-
 class AuditStorage:
 
     def __init__(self, db_name="audit.db"):
@@ -11,6 +10,11 @@ class AuditStorage:
             check_same_thread=False
         )
         self.create_table()
+
+    def _conn(self):
+        if not hasattr(self._local, "conn") or self._local.conn is None:
+            self._local.conn = sqlite3.connect(self.db_name, check_same_thread=True)
+        return self._local.conn
 
     def create_table(self):
 
@@ -29,7 +33,7 @@ class AuditStorage:
             event_hash TEXT NOT NULL UNIQUE
         )
         """)
-        
+
         cursor.execute("""
         CREATE TRIGGER IF NOT EXISTS prevent_delete
         BEFORE DELETE ON audit_events
@@ -53,7 +57,7 @@ class AuditStorage:
         """)
 
         self.conn.commit()
-    
+
     def insert_event(self, event):
 
         cursor = self.conn.cursor()
@@ -82,7 +86,7 @@ class AuditStorage:
         )
 
         self.conn.commit()
-        
+
     def get_events_by_user(self, user_id):
 
         cursor = self.conn.cursor()
@@ -97,7 +101,7 @@ class AuditStorage:
         )
 
         return cursor.fetchall()
-    
+
     def get_event_hashes_by_user(self, user_id):
 
         cursor = self.conn.cursor()
@@ -113,7 +117,7 @@ class AuditStorage:
         )
 
         return [row[0] for row in cursor.fetchall()]
-    
+
     def get_events_with_hashes_by_user(self, user_id):
 
         cursor = self.conn.cursor()
@@ -133,4 +137,3 @@ class AuditStorage:
         )
 
         return cursor.fetchall()
-        

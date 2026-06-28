@@ -4,7 +4,7 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import SpotlightCard from '../components/SpotlightCard';
 
-const API = 'http://127.0.0.1:8000';
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const STAT_CFG = [
   { key:'total_users',        label:'Total Users',        icon: <UserIcon />,   color:'#7c3aed', glow:'rgba(124,58,237,.25)' },

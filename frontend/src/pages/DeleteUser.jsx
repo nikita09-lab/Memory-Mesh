@@ -3,7 +3,8 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import SpotlightCard from '../components/SpotlightCard';
 
-const API = 'http://127.0.0.1:8000';
+
+const API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 function UserIcon() { return <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>; }
 function TrashIcon(){ return <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m2 0a1 1 0 00-1-1h-4a1 1 0 00-1 1H5a1 1 0 000 2h14a1 1 0 000-2h-2z"/></svg>; }

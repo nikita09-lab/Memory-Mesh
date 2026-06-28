@@ -7,12 +7,18 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from shared.config import settings
-from shared.utils import validate_username, validate_password, validate_email, utc_now_iso
-_admin_password = os.getenv("ADMIN_PASSWORD", "ChangeMe123!")
+from shared.utils import (
+    utc_now_iso,
+    validate_email,
+    validate_password,
+    validate_username,
+)
+
+_admin_password = os.getenv("ADMIN_PASSWORD", "")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # ── Database setup ────────────────────────────────────────────────────────────
@@ -44,10 +50,8 @@ def _init_db() -> None:
                 content   TEXT NOT NULL,
                 timestamp TEXT NOT NULL
             );
-
             CREATE INDEX IF NOT EXISTS idx_chat_username
                 ON chat_history (username);
-                
             CREATE TABLE IF NOT EXISTS documents (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 username   TEXT NOT NULL,

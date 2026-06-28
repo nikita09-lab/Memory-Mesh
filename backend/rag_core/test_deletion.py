@@ -16,28 +16,27 @@ Run with:
 """
 
 import gc
-import sys
-import weakref
-import unittest
-import numpy as np
 
 # ---------------------------------------------------------------------------
 # Make the project importable when run from repo root
 # ---------------------------------------------------------------------------
 import os
+import sys
+import unittest
+
+import numpy as np
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from rag_core.rag_core import (
-    RAGSession,
-    EmbeddingEngine,
-    Llama3Generator,
+    EMBEDDING_DIM,
     DifferentialPrivacyLayer,
     InMemoryVectorStore,
+    RAGSession,
     generate_session_key,
     secure_zero,
     secure_zero_ndarray,
     wipe_key,
-    EMBEDDING_DIM,
 )
 
 # ---------------------------------------------------------------------------
@@ -213,7 +212,6 @@ class TestCrossSessionIsolation(unittest.TestCase):
     """A new session cannot decrypt ciphertexts from a previous session."""
 
     def test_cross_session_decryption_fails(self):
-        from cryptography.exceptions import InvalidTag
 
         # Session A: index and capture raw ciphertext records
         key_holder_a = [generate_session_key()]
@@ -225,7 +223,7 @@ class TestCrossSessionIsolation(unittest.TestCase):
 
         # Session B: different key
         key_holder_b = [generate_session_key()]
-        store_b = InMemoryVectorStore(key_holder_b)
+        InMemoryVectorStore(key_holder_b)
 
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
         with self.assertRaises(Exception):   # InvalidTag or similar

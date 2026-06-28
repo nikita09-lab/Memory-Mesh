@@ -77,5 +77,15 @@ class Settings:
                 "Use at least 64 hex characters (256 bits)."
             )
 
+        if not os.getenv("GROQ_API_KEY"):
+            if self.is_production:
+                raise RuntimeError("[MemoryMesh] GROQ_API_KEY must be set in production.")
+            else:
+                import warnings
+                warnings.warn("[MemoryMesh] GROQ_API_KEY not set — RAG queries will return stub answers.", UserWarning)
+
+        admin_pass = os.getenv("ADMIN_PASSWORD", "")
+        if self.is_production and (not admin_pass or admin_pass == "ChangeMe123!"):
+            raise RuntimeError("[MemoryMesh] Set a strong ADMIN_PASSWORD in production.")
 
 settings = Settings()

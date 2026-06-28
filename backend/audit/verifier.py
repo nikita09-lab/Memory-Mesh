@@ -133,4 +133,4 @@ def generate_deletion_proof(logger, user_id):
         "merkle_root": root,
         "events": proof_data,
         "deletion_confirmed": True
-    }        
+    }

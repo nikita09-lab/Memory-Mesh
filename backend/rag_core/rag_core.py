@@ -36,11 +36,9 @@ from __future__ import annotations
 
 import gc
 import hashlib
-import io
 import logging
 import os
 import secrets
-import struct
 import time
 import uuid
 from contextlib import contextmanager
@@ -49,10 +47,12 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from dotenv import load_dotenv
+
+load_dotenv()
 logger = logging.getLogger("memorymesh.rag_core")
 # Load .env so GROQ_API_KEY is available when this module is imported
-from dotenv import load_dotenv
-load_dotenv()
+
 
 # ---------------------------------------------------------------------------
 # Constants
