@@ -3,6 +3,7 @@ FROM python:3.11-slim AS builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libmagic1 \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -15,6 +16,7 @@ FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmagic1 \
+    libpq5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -27,11 +29,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY --chown=appuser:appuser . .
 
-RUN mkdir -p /data && chown appuser:appuser /data
-
 USER appuser
 
-# Koyeb injects PORT automatically
 EXPOSE 8000
 
 CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}

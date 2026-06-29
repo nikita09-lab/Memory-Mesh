@@ -1,12 +1,12 @@
 """
 auth.py — Authentication & user management for MemoryMesh.
-Users and chat history are now persisted to SQLite so they survive restarts.
+Uses PostgreSQL (Supabase) for persistent storage.
 """
 import os
-import sqlite3
 from datetime import datetime, timedelta
-from pathlib import Path
 
+import psycopg2
+import psycopg2.extras
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
@@ -21,61 +21,63 @@ from shared.utils import (
 _admin_password = os.getenv("ADMIN_PASSWORD", "")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ── Database setup ────────────────────────────────────────────────────────────
 
-DB_PATH = Path(settings.DB_PATH).parent / "memorymesh_users.db"
+# ── Database connection ───────────────────────────────────────────────────────
 
-
-def _get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
+def _get_conn():
+    conn = psycopg2.connect(settings.DATABASE_URL)
+    conn.autocommit = False
     return conn
 
 
 def _init_db() -> None:
     """Create tables if they don't exist and seed the admin account."""
     with _get_conn() as conn:
-        conn.executescript("""
-            CREATE TABLE IF NOT EXISTS users (
-                username        TEXT PRIMARY KEY,
-                hashed_password TEXT NOT NULL,
-                role            TEXT NOT NULL DEFAULT 'user',
-                email           TEXT NOT NULL DEFAULT ''
-            );
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    username        TEXT PRIMARY KEY,
+                    hashed_password TEXT NOT NULL,
+                    role            TEXT NOT NULL DEFAULT 'user',
+                    email           TEXT NOT NULL DEFAULT ''
+                );
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS chat_history (
+                    id        SERIAL PRIMARY KEY,
+                    username  TEXT NOT NULL,
+                    role      TEXT NOT NULL,
+                    content   TEXT NOT NULL,
+                    timestamp TEXT NOT NULL
+                );
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_chat_username
+                    ON chat_history (username);
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS documents (
+                    id         SERIAL PRIMARY KEY,
+                    username   TEXT NOT NULL,
+                    filename   TEXT NOT NULL,
+                    content    TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+                );
+            """)
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_docs_username
+                    ON documents (username);
+            """)
 
-            CREATE TABLE IF NOT EXISTS chat_history (
-                id        INTEGER PRIMARY KEY AUTOINCREMENT,
-                username  TEXT NOT NULL,
-                role      TEXT NOT NULL,
-                content   TEXT NOT NULL,
-                timestamp TEXT NOT NULL
-            );
-            CREATE INDEX IF NOT EXISTS idx_chat_username
-                ON chat_history (username);
-            CREATE TABLE IF NOT EXISTS documents (
-                id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                username   TEXT NOT NULL,
-                filename   TEXT NOT NULL,
-                content    TEXT NOT NULL,
-                created_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_docs_username
-                ON documents (username);
-        """)
-
-        # Seed admin only if it doesn't exist yet
-        existing = conn.execute(
-            "SELECT 1 FROM users WHERE username = 'admin'"
-        ).fetchone()
-
-        if not existing:
-            hashed = pwd_context.hash(_admin_password)
-            conn.execute(
-                "INSERT INTO users (username, hashed_password, role, email) VALUES (?, ?, ?, ?)",
-                ("admin", hashed, "admin", "admin@memorymesh.ai"),
-            )
-            conn.commit()
+            # Seed admin only if not exists
+            cur.execute("SELECT 1 FROM users WHERE username = 'admin'")
+            if not cur.fetchone():
+                hashed = pwd_context.hash(_admin_password)
+                cur.execute(
+                    "INSERT INTO users (username, hashed_password, role, email) VALUES (%s, %s, %s, %s)",
+                    ("admin", hashed, "admin", "admin@memorymesh.ai"),
+                )
+        conn.commit()
 
 
 # Run once at import time
@@ -86,10 +88,9 @@ _init_db()
 
 def get_all_users() -> list[dict]:
     with _get_conn() as conn:
-        rows = conn.execute(
-            "SELECT username, role, email FROM users"
-        ).fetchall()
-    return [dict(r) for r in rows]
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT username, role, email FROM users")
+            return [dict(r) for r in cur.fetchall()]
 
 
 def register_user(username: str, password: str, email: str = "") -> tuple[dict | None, str | None]:
@@ -104,17 +105,15 @@ def register_user(username: str, password: str, email: str = "") -> tuple[dict |
         return None, err
 
     with _get_conn() as conn:
-        existing = conn.execute(
-            "SELECT 1 FROM users WHERE username = ?", (username,)
-        ).fetchone()
-        if existing:
-            return None, "Username already exists."
-
-        hashed = pwd_context.hash(password)
-        conn.execute(
-            "INSERT INTO users (username, hashed_password, role, email) VALUES (?, ?, ?, ?)",
-            (username, hashed, "user", email),
-        )
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM users WHERE username = %s", (username,))
+            if cur.fetchone():
+                return None, "Username already exists."
+            hashed = pwd_context.hash(password)
+            cur.execute(
+                "INSERT INTO users (username, hashed_password, role, email) VALUES (%s, %s, %s, %s)",
+                (username, hashed, "user", email),
+            )
         conn.commit()
 
     return {"username": username, "role": "user", "email": email}, None
@@ -124,28 +123,24 @@ def delete_user_permanently(username: str) -> tuple[bool, str]:
     if username == "admin":
         return False, "Cannot delete the admin account."
     with _get_conn() as conn:
-        result = conn.execute(
-            "DELETE FROM users WHERE username = ?", (username,)
-        )
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM chat_history WHERE username = %s", (username,))
+            cur.execute("DELETE FROM documents WHERE username = %s", (username,))
+            cur.execute("DELETE FROM users WHERE username = %s", (username,))
+            deleted = cur.rowcount
         conn.commit()
-        if result.rowcount == 0:
-            return False, "User not found."
-        # Wipe chat history too
-        conn.execute(
-            "DELETE FROM chat_history WHERE username = ?", (username,)
-        )
-        conn.commit()
+    if deleted == 0:
+        return False, "User not found."
     return True, "User deleted."
 
 
 def authenticate_user(username: str, password: str) -> dict | None:
     with _get_conn() as conn:
-        row = conn.execute(
-            "SELECT * FROM users WHERE username = ?", (username,)
-        ).fetchone()
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+            row = cur.fetchone()
 
     if not row:
-        # Constant-time dummy verify to prevent user-enumeration via timing
         pwd_context.verify(
             "dummy",
             "$2b$12$KIXkbHxVFBJB3cMd7H3oDeHoR7RmFLRjWEt7sRq2JoLVN0M0l0Hma",
@@ -162,57 +157,64 @@ def authenticate_user(username: str, password: str) -> dict | None:
 
 def save_chat_message(username: str, role: str, content: str) -> None:
     with _get_conn() as conn:
-        conn.execute(
-            "INSERT INTO chat_history (username, role, content, timestamp) VALUES (?, ?, ?, ?)",
-            (username, role, content, utc_now_iso()),
-        )
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO chat_history (username, role, content, timestamp) VALUES (%s, %s, %s, %s)",
+                (username, role, content, utc_now_iso()),
+            )
         conn.commit()
 
 
 def get_chat_history(username: str) -> list[dict]:
     with _get_conn() as conn:
-        rows = conn.execute(
-            "SELECT role, content, timestamp FROM chat_history WHERE username = ? ORDER BY id",
-            (username,),
-        ).fetchall()
-    return [dict(r) for r in rows]
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT role, content, timestamp FROM chat_history WHERE username = %s ORDER BY id",
+                (username,),
+            )
+            return [dict(r) for r in cur.fetchall()]
 
 
 def delete_chat_history(username: str) -> int:
     with _get_conn() as conn:
-        result = conn.execute(
-            "DELETE FROM chat_history WHERE username = ?", (username,)
-        )
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM chat_history WHERE username = %s", (username,))
+            count = cur.rowcount
         conn.commit()
-    return result.rowcount
+    return count
 
 
 # ── Document storage ──────────────────────────────────────────────────────────
 
 def save_document(username: str, filename: str, content: str) -> int:
     with _get_conn() as conn:
-        cursor = conn.execute(
-            "INSERT INTO documents (username, filename, content) VALUES (?, ?, ?)",
-            (username, filename, content),
-        )
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO documents (username, filename, content) VALUES (%s, %s, %s) RETURNING id",
+                (username, filename, content),
+            )
+            doc_id = cur.fetchone()[0]
         conn.commit()
-        return cursor.lastrowid
+    return doc_id
+
 
 def get_documents(username: str) -> list[dict]:
     with _get_conn() as conn:
-        rows = conn.execute(
-            "SELECT id, filename, content, created_at FROM documents WHERE username = ? ORDER BY id DESC",
-            (username,),
-        ).fetchall()
-    return [dict(r) for r in rows]
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id, filename, content, created_at FROM documents WHERE username = %s ORDER BY id DESC",
+                (username,),
+            )
+            return [dict(r) for r in cur.fetchall()]
+
 
 def delete_documents(username: str) -> int:
     with _get_conn() as conn:
-        result = conn.execute(
-            "DELETE FROM documents WHERE username = ?", (username,)
-        )
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM documents WHERE username = %s", (username,))
+            count = cur.rowcount
         conn.commit()
-    return result.rowcount
+    return count
 
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
