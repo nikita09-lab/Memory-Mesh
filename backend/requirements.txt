@@ -1,39 +1,58 @@
-# ============================================================
-#  MemoryMesh v2 — Backend Requirements
-#  Install: pip install -r requirements.txt
-# ============================================================
+# ==============================================================
+#  MemoryMesh — Backend Requirements
+#  Python 3.11 / 3.12 / 3.13 compatible
+#
+#  Install (production):  pip install -r requirements.txt
+#  Install (dev):         pip install -r requirements.txt -r requirements-dev.txt
+# ==============================================================
 
-# --- Web Framework ---
+
+# ── Web Framework ─────────────────────────────────────────────
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
+python-multipart==0.0.9          # REQUIRED for FastAPI UploadFile
 
-# --- Auth & Security ---
+
+# ── Authentication & Security ─────────────────────────────────
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+passlib==1.7.4                   # do NOT add [bcrypt] extra — it pulls bcrypt 4.1+ which breaks passlib
+bcrypt==4.0.1                    # 4.1+ changed internal API and is incompatible with passlib 1.7.4
 cryptography==43.0.3
 
-# --- ML / Embeddings ---
-torch==2.4.1
-numpy==1.26.4
-sentence-transformers==3.3.1
-transformers==4.46.3
 
-# --- Vector Search ---
-faiss-cpu==1.9.0
-
-# --- HTTP Client (optional, for testing) ---
-httpx==0.27.2
-
-# --- Audit DB ---
-# sqlite3 is built into Python — no install needed
-
-# --- Dev / Testing ---
-pytest==8.3.4
-pytest-asyncio==0.24.0
-requests==2.32.3
-
+# ── Rate Limiting ─────────────────────────────────────────────
 slowapi==0.1.9
-python-dotenv==1.0.1
+
+
+# ── ML / Embeddings ───────────────────────────────────────────
+torch==2.6.0
+numpy==2.2.3
+sentence-transformers==3.4.1
+transformers==4.48.3
+
+
+# ── Vector Search ─────────────────────────────────────────────
+faiss-cpu==1.10.0
+
+
+# ── LLM Client ────────────────────────────────────────────────
 groq==0.11.0
+
+
+# ── Document Parsing ──────────────────────────────────────────
 pypdf==4.3.1
-slowapi
+python-magic==0.4.27             # also needs: brew install libmagic  (macOS)
+
+
+# ── gRPC ──────────────────────────────────────────────────────
+grpcio==1.67.1
+grpcio-tools==1.67.1
+
+
+# ── Config / Environment ──────────────────────────────────────
+python-dotenv==1.0.1
+
+
+# ── HTTP Client ───────────────────────────────────────────────
+httpx==0.27.2
+requests==2.32.3
