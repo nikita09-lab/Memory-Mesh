@@ -44,11 +44,16 @@ class AuditStorage:
         with self._conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
+                    "SELECT 1 FROM audit_events WHERE event_hash = %s",
+                    (event.hash(),)
+                )
+                if cur.fetchone():
+                    return  # duplicate, skip
+                cur.execute(
                     """
                     INSERT INTO audit_events
                         (event_id, user_id, session_id, event_type, timestamp, event_hash)
                     VALUES (%s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (event_hash) DO NOTHING
                     """,
                     (
                         event.event_id,
