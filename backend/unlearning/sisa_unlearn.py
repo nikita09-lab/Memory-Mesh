@@ -56,7 +56,7 @@ class SISAConfig:
     output_dim: int = 10
     device: str = "cpu"          # switch to "cuda" if available
     benchmark_csv: str = "/tmp/benchmark_report.csv"
-    provenance_db: str = "provenance.json"
+    provenance_db: str = "/tmp/provenance.json"
 
 
 # ---------------------------------------------------------------------------
