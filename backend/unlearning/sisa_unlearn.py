@@ -55,7 +55,7 @@ class SISAConfig:
     input_dim: int = 784         # e.g. flattened 28×28 for MNIST-like data
     output_dim: int = 10
     device: str = "cpu"          # switch to "cuda" if available
-    benchmark_csv: str = "benchmark_report.csv"
+    benchmark_csv: str = "/tmp/benchmark_report.csv"
     provenance_db: str = "provenance.json"
 
 
